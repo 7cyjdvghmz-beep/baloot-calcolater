@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>حاسبة بلوت صوتية — v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --felt:#123A31;
+  --felt-deep:#0C2721;
+  --ink:#071915;
+  --gold:#C9A227;
+  --cream:#F1EADA;
+  --clay:#B4472F;
+  --line:rgba(241,234,218,.16);
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(120% 80% at 50% 0%, #17493D 0%, var(--felt) 45%, var(--felt-deep) 100%);
+  color:var(--cream);
+  font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;
+  min-height:100%;
+  padding:18px 16px 40px;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:520px;margin:0 auto}
+
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:18px}
+h1{font-family:"Noto Kufi Arabic",sans-serif;font-size:22px;font-weight:700;letter-spacing:-.2px}
+.ver{font-size:12px;color:rgba(241,234,218,.5)}
+
+/* ---- score board ---- */
+.board{
+  display:grid;grid-template-columns:1fr 1px 1fr;
+  border:1px solid var(--line);border-radius:var(--r);
+  background:rgba(7,25,21,.45);overflow:hidden;margin-bottom:16px;
+}
+.side{padding:16px 14px;text-align:center}
+.side .nm{font-size:13px;color:rgba(241,234,218,.65);margin-bottom:6px}
+.side .tot{font-family:"Noto Kufi Arabic",sans-serif;font-size:40px;font-weight:700;line-height:1}
+.side.them .tot{color:var(--gold)}
+.vline{background:var(--line)}
+
+/* ---- mic ---- */
+.mic-zone{text-align:center;margin:22px 0 14px}
+#mic{
+  width:118px;height:118px;border-radius:50%;
+  border:1px solid var(--gold);
+  background:rgba(201,162,39,.10);
+  color:var(--cream);font-family:"Noto Kufi Arabic",sans-serif;font-size:15px;font-weight:500;
+  cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none;
+  transition:transform .12s ease, background .2s ease;
+}
+#mic:active{transform:scale(.96)}
+#mic:focus-visible{outline:2px solid var(--cream);outline-offset:4px}
+#mic.live{background:var(--clay);border-color:var(--clay);animation:pulse 1.4s infinite}
+#mic[disabled]{opacity:.4;cursor:not-allowed;animation:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(180,71,47,.5)}50%{box-shadow:0 0 0 16px rgba(180,71,47,0)}}
+@media (prefers-reduced-motion:reduce){#mic.live{animation:none}}
+.hint{font-size:13px;color:rgba(241,234,218,.55);margin-top:12px;line-height:1.7}
+
+/* ---- transcript / manual ---- */
+.heard{
+  border:1px dashed var(--line);border-radius:var(--r);padding:12px 14px;
+  min-height:48px;font-size:15px;margin-bottom:12px;color:rgba(241,234,218,.9)
+}
+.heard.empty{color:rgba(241,234,218,.35)}
+.manual{display:flex;gap:8px;margin-bottom:16px}
+.manual input{
+  flex:1;background:rgba(7,25,21,.5);border:1px solid var(--line);border-radius:10px;
+  padding:11px 12px;color:var(--cream);font-family:inherit;font-size:15px
+}
+.manual input:focus{outline:none;border-color:var(--gold)}
+button.act{
+  background:var(--gold);color:var(--ink);border:none;border-radius:10px;
+  padding:11px 16px;font-family:"Noto Kufi Arabic",sans-serif;font-weight:500;font-size:14px;cursor:pointer
+}
+button.ghost{background:transparent;color:var(--cream);border:1px solid var(--line)}
+
+/* ---- confirm card ---- */
+.confirm{
+  border:1px solid var(--gold);border-radius:var(--r);
+  background:rgba(201,162,39,.07);padding:16px;margin-bottom:16px
+}
+.confirm h2{font-family:"Noto Kufi Arabic",sans-serif;font-size:15px;font-weight:500;margin-bottom:14px;color:var(--gold)}
+.pair{display:flex;gap:10px;margin-bottom:12px}
+.fld{flex:1}
+.fld label{display:block;font-size:12px;color:rgba(241,234,218,.6);margin-bottom:5px}
+.fld input,.fld select{
+  width:100%;background:rgba(7,25,21,.55);border:1px solid var(--line);border-radius:9px;
+  padding:10px;color:var(--cream);font-family:inherit;font-size:16px;text-align:center
+}
+.fld input:focus,.fld select:focus{outline:none;border-color:var(--gold)}
+.warn{font-size:13px;color:#E8B4A2;background:rgba(180,71,47,.18);border-radius:9px;padding:9px 11px;margin-bottom:12px;line-height:1.6}
+.ok{font-size:13px;color:rgba(241,234,218,.6);margin-bottom:12px}
+.btn-row{display:flex;gap:8px}
+.btn-row button{flex:1}
+
+/* ---- history ---- */
+h3{font-family:"Noto Kufi Arabic",sans-serif;font-size:14px;font-weight:500;color:rgba(241,234,218,.6);margin:22px 0 8px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:9px 6px;text-align:center;border-bottom:1px solid var(--line)}
+th{font-size:12px;font-weight:500;color:rgba(241,234,218,.5)}
+td.note{font-size:12px;color:rgba(241,234,218,.5)}
+.del{background:none;border:none;color:rgba(241,234,218,.4);cursor:pointer;font-size:16px;padding:2px 6px}
+.empty-state{font-size:14px;color:rgba(241,234,218,.4);padding:18px 0;text-align:center}
+footer{margin-top:26px;display:flex;gap:8px}
+footer button{flex:1;font-size:13px;padding:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>حاسبة بلوت صوتية</h1>
+    <span class="ver">v1 — تجريبي</span>
+  </header>
+
+  <div class="board">
+    <div class="side us"><div class="nm">لنا</div><div class="tot" id="totUs">0</div></div>
+    <div class="vline"></div>
+    <div class="side them"><div class="nm">عليهم</div><div class="tot" id="totThem">0</div></div>
+  </div>
+
+  <div class="mic-zone">
+    <button id="mic">اضغط وتكلم</button>
+    <p class="hint" id="hint">قل مثلاً: «صن، لنا ستة عشر وعليهم عشرة»</p>
+  </div>
+
+  <div class="heard empty" id="heard">ما سمعت شيء بعد</div>
+
+  <div class="manual">
+    <input id="manualInput" placeholder="أو اكتب الجملة هنا لتجربة التفسير" enterkeyhint="go">
+    <button class="act" id="manualBtn">جرّب</button>
+  </div>
+
+  <div id="confirmSlot"></div>
+
+  <h3>الجولات</h3>
+  <div id="historySlot"></div>
+
+  <footer>
+    <button class="act ghost" id="undoBtn">حذف آخر جولة</button>
+    <button class="act ghost" id="resetBtn">جولة جديدة</button>
+  </footer>
+
+</div>
+
+<script>
+/* ============================================================
+   1. تطبيع النص العربي
+   ============================================================ */
+const AR_DIGITS = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
+
+function normalize(s){
+  return (s||'')
+    .replace(/[\u064B-\u0652\u0670]/g,'')          // تشكيل
+    .replace(/[٠-٩]/g, d => AR_DIGITS[d])          // أرقام هندية
+    .replace(/[أإآٱ]/g,'ا')
+    .replace(/ة/g,'ه')
+    .replace(/ى/g,'ي')
+    .replace(/ـ/g,'')
+    .replace(/[^\u0621-\u064A0-9\s]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+/* ============================================================
+   2. تفسير الأعداد المنطوقة
+   ============================================================ */
+const UNITS = {
+  'صفر':0,'واحد':1,'واحده':1,'احد':1,'اثنين':2,'اثنان':2,'ثنتين':2,'اثنا':2,'اثني':2,
+  'ثلاثه':3,'ثلاث':3,'اربعه':4,'اربع':4,'خمسه':5,'خمس':5,'سته':6,'ست':6,
+  'سبعه':7,'سبع':7,'ثمانيه':8,'ثمان':8,'ثمانه':8,'تسعه':9,'تسع':9
+};
+const TENS = {
+  'عشره':10,'عشر':10,'عشرين':20,'ثلاثين':30,'اربعين':40,'خمسين':50,
+  'ستين':60,'سبعين':70,'ثمانين':80,'تسعين':90
+};
+const HUNDREDS = {
+  'مايه':100,'مئه':100,'ميه':100,'مايتين':200,'مئتين':200,'ميتين':200,
+  'ثلاثمايه':300,'اربعمايه':400,'خمسمايه':500
+};
+
+// يحوّل قائمة كلمات إلى أرقام مع الحفاظ على ترتيبها
+function extractNumbers(tokens){
+  const out=[]; let cur=null; let lastWasUnit=false;
+
+  const flush = ()=>{ if(cur!==null){ out.push(cur); cur=null; } lastWasUnit=false; };
+
+  for(let i=0;i<tokens.length;i++){
+    const t = tokens[i];
+
+    if(/^\d+$/.test(t)){ flush(); out.push(parseInt(t,10)); continue; }
+
+    if(t==='و'){ continue; }                       // حرف العطف يربط ولا يقطع
+
+    if(HUNDREDS[t]!==undefined){
+      cur = (cur||0) + HUNDREDS[t]; lastWasUnit=false; continue;
+    }
+    if(TENS[t]!==undefined){
+      // "ستة عشر" = 6 + 10 ، أما "ستة وعشرين" = 6 + 20
+      cur = (cur||0) + TENS[t]; lastWasUnit=false; continue;
+    }
+    if(UNITS[t]!==undefined){
+      if(lastWasUnit) flush();                     // رقمان متتاليان = عددان مختلفان
+      cur = (cur||0) + UNITS[t]; lastWasUnit=true; continue;
+    }
+    flush();
+  }
+  flush();
+  return out;
+}
+
+/* ============================================================
+   3. تفسير الجملة كاملة
+   ============================================================ */
+const US_WORDS   = ['لنا','لينا','احنا','النا'];
+const THEM_WORDS = ['عليهم','لهم','عليكم','عليك','علينا','هم','الخصم'];
+
+const PROJECTS = {
+  'بلوت':2,'سرا':5,'خمسين':5,'سره':5,'مايه':10,'ميه':10,'مئه':10,
+  'اربعمايه':40,'اربعميه':40
+};
+
+function parseSentence(raw){
+  const norm = normalize(raw);
+  const tokens = norm.split(' ').filter(Boolean);
+  const res = {raw, norm, mode:null, us:null, them:null, notes:[], warns:[], doubled:false};
+
+  if(!tokens.length){ res.warns.push('الجملة فاضية.'); return res; }
+
+  // نوع اللعبة
+  if(tokens.includes('صن')||tokens.includes('سن')) res.mode='sun';
+  if(tokens.includes('حكم')) res.mode='hokum';
+  if(tokens.includes('دبل')||tokens.includes('دبل')) res.doubled=true;
+
+  // ولد — الفريق الذي "ولد" يخسر كل النقاط
+  const walad = tokens.indexOf('ولد');
+
+  // نبحث عن الأرقام مقرونة بجهة
+  let usVal=null, themVal=null;
+  for(let i=0;i<tokens.length;i++){
+    const t=tokens[i];
+    const isUs   = US_WORDS.includes(t);
+    const isThem = THEM_WORDS.includes(t);
+    if(!isUs && !isThem) continue;
+
+    // اجمع الكلمات التالية حتى تصادف جهة أخرى
+    const rest=[];
+    for(let j=i+1;j<tokens.length;j++){
+      if(US_WORDS.includes(tokens[j])||THEM_WORDS.includes(tokens[j])) break;
+      rest.push(tokens[j]);
+    }
+    const nums = extractNumbers(rest);
+    if(nums.length){
+      if(isUs && usVal===null) usVal=nums[0];
+      if(isThem && themVal===null) themVal=nums[0];
+    }
+  }
+
+  // لو ما ذُكرت الجهات إطلاقاً: خذ أول رقمين بالترتيب (لنا ثم عليهم)
+  if(usVal===null && themVal===null){
+    const nums = extractNumbers(tokens);
+    if(nums.length>=2){ usVal=nums[0]; themVal=nums[1]; res.notes.push('ما ذُكرت الجهات — افترضت الترتيب: لنا ثم عليهم.'); }
+    else if(nums.length===1){ usVal=nums[0]; res.warns.push('سمعت رقم واحد فقط.'); }
+    else { res.warns.push('ما لقيت أي رقم في الجملة.'); }
+  }
+
+  const total = res.mode==='hokum' ? 16 : 26;
+
+  // إكمال الطرف الناقص من المجموع المتوقع
+  if(usVal!==null && themVal===null && usVal<=total){ themVal = total-usVal; res.notes.push('حسبت الطرف الثاني من المجموع.'); }
+  if(themVal!==null && usVal===null && themVal<=total){ usVal = total-themVal; res.notes.push('حسبت الطرف الثاني من المجموع.'); }
+
+  // معالجة "ولد"
+  if(walad>-1){
+    const after = tokens.slice(walad+1, walad+3);
+    if(after.some(w=>US_WORDS.includes(w))){ themVal=(usVal||0)+(themVal||0)||total; usVal=0; res.notes.push('ولد علينا — كل النقاط للخصم.'); }
+    else if(after.some(w=>THEM_WORDS.includes(w))){ usVal=(usVal||0)+(themVal||0)||total; themVal=0; res.notes.push('ولد عليهم — كل النقاط لنا.'); }
+    else res.warns.push('سمعت «ولد» بدون تحديد الجهة — راجع الأرقام.');
+  }
+
+  // مشاريع مذكورة
+  const proj = tokens.filter(t=>PROJECTS[t]!==undefined);
+  if(proj.length) res.notes.push('مشاريع مذكورة: '+proj.join('، ')+' — أضفها يدوياً إن لزم.');
+
+  res.us   = usVal;
+  res.them = themVal;
+
+  // تحقق منطقي
+  if(usVal!==null && themVal!==null){
+    const sum = usVal+themVal;
+    if(sum!==total){
+      if(sum<total) res.warns.push(`المجموع ${sum} والمتوقع ${total} في ${res.mode==='hokum'?'الحكم':'الصن'}. راجع الأرقام.`);
+      else if(!proj.length) res.warns.push(`المجموع ${sum} أكبر من ${total} — إن ما فيه مشاريع فغالباً فيه خطأ.`);
+    }
+  }
+  if(!res.mode) res.notes.push('ما ذُكر نوع اللعبة — افترضت صن.');
+
+  return res;
+}
+
+/* ============================================================
+   4. الحالة والعرض
+   ============================================================ */
+let rounds = [];
+let pending = null;
+
+const $ = id => document.getElementById(id);
+
+function render(){
+  const us = rounds.reduce((a,r)=>a+r.us,0);
+  const them = rounds.reduce((a,r)=>a+r.them,0);
+  $('totUs').textContent = us;
+  $('totThem').textContent = them;
+
+  const slot = $('historySlot');
+  if(!rounds.length){ slot.innerHTML='<div class="empty-state">ما فيه جولات مسجلة</div>'; return; }
+  slot.innerHTML = `<table><thead><tr>
+      <th>#</th><th>النوع</th><th>لنا</th><th>عليهم</th><th></th>
+    </tr></thead><tbody>${
+      rounds.map((r,i)=>`<tr>
+        <td class="note">${i+1}</td>
+        <td class="note">${r.mode==='hokum'?'حكم':'صن'}${r.doubled?' • دبل':''}</td>
+        <td>${r.us}</td><td>${r.them}</td>
+        <td><button class="del" data-i="${i}" aria-label="حذف الجولة ${i+1}">✕</button></td>
+      </tr>`).join('')
+    }</tbody></table>`;
+  slot.querySelectorAll('.del').forEach(b=>{
+    b.onclick = ()=>{ rounds.splice(+b.dataset.i,1); render(); };
+  });
+}
+
+function showConfirm(p){
+  pending = p;
+  const msgs = [
+    ...p.warns.map(w=>`<div class="warn">${w}</div>`),
+    ...p.notes.map(n=>`<div class="ok">${n}</div>`)
+  ].join('');
+
+  $('confirmSlot').innerHTML = `
+    <div class="confirm">
+      <h2>تأكيد الجولة</h2>
+      ${msgs}
+      <div class="pair">
+        <div class="fld"><label for="cUs">لنا</label><input id="cUs" type="number" inputmode="numeric" value="${p.us??''}"></div>
+        <div class="fld"><label for="cThem">عليهم</label><input id="cThem" type="number" inputmode="numeric" value="${p.them??''}"></div>
+        <div class="fld"><label for="cMode">النوع</label>
+          <select id="cMode">
+            <option value="sun" ${p.mode!=='hokum'?'selected':''}>صن</option>
+            <option value="hokum" ${p.mode==='hokum'?'selected':''}>حكم</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="act" id="saveBtn">حفظ الجولة</button>
+        <button class="act ghost" id="cancelBtn">إلغاء</button>
+      </div>
+    </div>`;
+
+  $('saveBtn').onclick = ()=>{
+    const u = parseInt($('cUs').value,10), t = parseInt($('cThem').value,10);
+    if(isNaN(u)||isNaN(t)){ alert('اكتب رقمين صحيحين للجهتين.'); return; }
+    rounds.push({us:u, them:t, mode:$('cMode').value, doubled:p.doubled});
+    $('confirmSlot').innerHTML=''; pending=null; render();
+  };
+  $('cancelBtn').onclick = ()=>{ $('confirmSlot').innerHTML=''; pending=null; };
+}
+
+function handleText(txt){
+  $('heard').textContent = txt;
+  $('heard').classList.remove('empty');
+  showConfirm(parseSentence(txt));
+}
+
+/* ============================================================
+   5. التعرف على الصوت
+   ============================================================ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micBtn = $('mic');
+let rec = null, listening = false;
+
+if(!SR){
+  micBtn.disabled = true;
+  micBtn.textContent = 'غير مدعوم';
+  $('hint').textContent = 'متصفحك ما يدعم التعرف الصوتي. جرّب Chrome، أو استخدم الإدخال النصي تحت.';
+}else{
+  rec = new SR();
+  rec.lang = 'ar-SA';
+  rec.interimResults = true;
+  rec.continuous = false;
+  rec.maxAlternatives = 3;
+
+  let finalText = '';
+
+  rec.onstart = ()=>{ listening=true; micBtn.classList.add('live'); micBtn.textContent='أسمعك…'; finalText=''; };
+  rec.onresult = e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const r=e.results[i];
+      if(r.isFinal) finalText += r[0].transcript+' '; else interim += r[0].transcript;
+    }
+    $('heard').textContent = (finalText+interim).trim() || '…';
+    $('heard').classList.remove('empty');
+  };
+  rec.onerror = e=>{
+    micBtn.classList.remove('live'); micBtn.textContent='اضغط وتكلم'; listening=false;
+    const map = {
+      'not-allowed':'الميكروفون مرفوض. اسمح للموقع بالوصول من إعدادات المتصفح.',
+      'no-speech':'ما سمعت صوت. قرّب الجهاز وحاول مرة ثانية.',
+      'audio-capture':'ما لقيت ميكروفون متاح.',
+      'network':'التعرف الصوتي يحتاج اتصال بالإنترنت.'
+    };
+    $('hint').textContent = map[e.error] || ('تعذّر التعرف: '+e.error);
+  };
+  rec.onend = ()=>{
+    listening=false; micBtn.classList.remove('live'); micBtn.textContent='اضغط وتكلم';
+    const t = finalText.trim();
+    if(t) handleText(t);
+  };
+
+  micBtn.onclick = ()=>{
+    if(listening){ rec.stop(); return; }
+    $('hint').textContent = 'قل مثلاً: «صن، لنا ستة عشر وعليهم عشرة»';
+    try{ rec.start(); }catch(err){ /* تجاهل البدء المزدوج */ }
+  };
+}
+
+/* الإدخال النصي — للتجربة بدون ميكروفون */
+$('manualBtn').onclick = ()=>{
+  const v = $('manualInput').value.trim();
+  if(v){ handleText(v); $('manualInput').value=''; }
+};
+$('manualInput').addEventListener('keydown', e=>{ if(e.key==='Enter') $('manualBtn').click(); });
+
+$('undoBtn').onclick = ()=>{ rounds.pop(); render(); };
+$('resetBtn').onclick = ()=>{
+  if(rounds.length && !confirm('تصفير كل الجولات؟')) return;
+  rounds=[]; $('confirmSlot').innerHTML=''; render();
+};
+
+render();
+</script>
+</body>
+</html>
